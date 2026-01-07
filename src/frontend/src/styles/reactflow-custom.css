@@ -1,0 +1,78 @@
+/* Remove default ReactFlow node wrapper backgrounds */
+.react-flow__node {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Remove default node type styling */
+.react-flow__node-default,
+.react-flow__node-input,
+.react-flow__node-output,
+.react-flow__node-layer {
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+/* Remove selection/focus backgrounds */
+.react-flow__node.selected,
+.react-flow__node:focus,
+.react-flow__node:focus-visible,
+.react-flow__node.selectable:focus,
+.react-flow__node.selectable:focus-visible {
+  background: transparent !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* Remove any lingering node backgrounds */
+.react-flow__nodes {
+  background: transparent !important;
+}
+
+/* Edge styling */
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+/* Dark theme for ReactFlow controls */
+.react-flow__controls {
+  background: rgba(31, 41, 55, 0.9) !important;
+  border: 1px solid rgb(55, 65, 81) !important;
+  border-radius: 0.5rem !important;
+}
+
+.react-flow__controls-button {
+  background: transparent !important;
+  border: none !important;
+  color: rgb(209, 213, 219) !important;
+}
+
+.react-flow__controls-button:hover {
+  background: rgba(55, 65, 81, 0.5) !important;
+}
+
+.react-flow__controls-button svg {
+  fill: rgb(209, 213, 219) !important;
+}
+
+/* Dark theme for attribution */
+.react-flow__attribution {
+  background: rgba(31, 41, 55, 0.8) !important;
+  color: rgb(156, 163, 175) !important;
+  border: 1px solid rgb(55, 65, 81) !important;
+  border-radius: 0.25rem !important;
+  padding: 2px 6px !important;
+  font-size: 10px !important;
+}
+
+.react-flow__attribution a {
+  color: rgb(147, 197, 253) !important;
+}
