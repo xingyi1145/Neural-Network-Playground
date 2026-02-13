@@ -12,10 +12,14 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field, conint
 
 from backend.datasets import list_datasets
+
+from sqlalchemy.orm import Session
+from backend.database import get_db
+from backend.db_models import ModelConfigDB
 
 router = APIRouter(prefix="/api/models", tags=["models"])
 
@@ -33,8 +37,6 @@ ALLOWED_ACTIVATIONS = {
     "softplus",
     "linear",
 }
-
-MODEL_STORE: Dict[str, "ModelResponse"] = {}
 
 
 class LayerConfig(BaseModel):
@@ -167,56 +169,64 @@ def _validate_layers(layers: List[LayerConfig]) -> List[LayerConfig]:
     return normalized_layers
 
 
-def _build_model_record(
-    model_id: str,
-    payload: ModelCreateRequest,
-    layers: List[LayerConfig],
-) -> ModelResponse:
-    created_at = datetime.now(timezone.utc)
-    name = payload.name or f"{payload.dataset_id}_model"
-    return ModelResponse(
-        id=model_id,
-        name=name,
-        dataset_id=payload.dataset_id,
-        description=payload.description,
-        layers=layers,
-        created_at=created_at,
-        status="created",
-    )
-
-
 @router.post("", response_model=ModelResponse, status_code=201)
-def create_model(config: ModelCreateRequest) -> ModelResponse:
+def create_model(config: ModelCreateRequest, db: Session = Depends(get_db)) -> ModelResponse:
     """
     Create a model configuration from a list of layers.
     """
     _ensure_dataset_exists(config.dataset_id)
     validated_layers = _validate_layers(config.layers)
     model_id = str(uuid4())
-    record = _build_model_record(model_id, config, validated_layers)
-    MODEL_STORE[model_id] = record
-    return record
+    name = config.name or f"{config.dataset_id}_model"
+
+    db_model = ModelConfigDB(
+        id=model_id,
+        name=name,
+        dataset_id=config.dataset_id,
+        description=config.description,
+        layers=[layer.model_dump() for layer in validated_layers],
+        status="created",
+    )
+    db.add(db_model)
+    db.commit()
+    db.refresh(db_model)
+
+    return ModelResponse(
+        id=db_model.id,
+        name=db_model.name,
+        dataset_id=db_model.dataset_id,
+        description=db_model.description,
+        layers=validated_layers,
+        created_at=db_model.created_at,
+        status=db_model.status,
+    )
 
 
 @router.get("/{model_id}", response_model=ModelResponse)
-def get_model(model_id: str) -> ModelResponse:
-    """
-    Retrieve a previously created model configuration.
-    """
-    try:
-        return MODEL_STORE[model_id]
-    except KeyError as exc:
-        raise HTTPException(status_code=404, detail=f"Model '{model_id}' not found") from exc
+def get_model(model_id: str, db: Session = Depends(get_db)) -> ModelResponse:
+    db_model = db.query(ModelConfigDB).filter(ModelConfigDB.id == model_id).first()
+    if db_model is None:
+        raise HTTPException(status_code=404, detail=f"Model with id '{model_id}' not found")
+    
+    return ModelResponse(
+        id=db_model.id,
+        name=db_model.name,
+        dataset_id=db_model.dataset_id,
+        description=db_model.description,
+        layers=[LayerConfig(**layer) for layer in db_model.layers],
+        created_at=db_model.created_at,
+        status=db_model.status,
+    )
 
 
-def clear_model_store() -> None:
+def clear_model_store(db: Session) -> None:
     """Helper used by tests to start from a clean in-memory store."""
-    MODEL_STORE.clear()
+    db.query(ModelConfigDB).delete()
+    db.commit()
 
 
 __all__ = [
     "router",
-    "MODEL_STORE",
     "ModelCreateRequest",
     "ModelResponse",
     "LayerConfig",
