@@ -1,0 +1,27 @@
+[Unit]
+Description=Neural Network Playground API (Uvicorn)
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/nn-playground
+Environment=PYTHONPATH=/var/www/nn-playground/src
+EnvironmentFile=/var/www/nn-playground/.env
+
+ExecStart=/var/www/nn-playground/venv/bin/uvicorn \
+    backend.api.main:app \
+    --host 127.0.0.1 \
+    --port 8000 \
+    --workers 2
+
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=nn-playground
+
+[Install]
+WantedBy=multi-user.target
