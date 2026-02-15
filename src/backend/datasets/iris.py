@@ -21,7 +21,9 @@ class IrisDataset(BaseDataset):
     description = "Simple 3-class classification on flower measurements (4 features)."
     hyperparameters = Hyperparameters(epochs=50, learning_rate=0.01, batch_size=32)
 
-    def load(self, test_size: float = 0.2) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def load(
+        self, test_size: float = 0.2
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         bunch = load_iris(as_frame=False)
         X: np.ndarray = bunch.data
         y: np.ndarray = bunch.target.astype(np.int64)

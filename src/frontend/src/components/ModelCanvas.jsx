@@ -157,11 +157,8 @@ const OUTPUT_STYLE = {
   rounded: 'rounded-xl',
 };
 
-// Keep backward compatibility alias
-const LAYER_COLORS = LAYER_STYLES;
-
 // Modern connected block component with smooth animations - varied shapes per layer type
-const ScratchBlock = ({ type, children, isInput, isOutput, color, onEdit, onDelete, isDragging, isDropTarget, isLast, style, layerData }) => {
+const ScratchBlock = ({ type, children, isInput, isOutput, color, onEdit, onDelete, isDragging, isDropTarget, isLast, style }) => {
   // Use special styles for input/output, otherwise use layer styles
   let styles;
   if (isInput) {
@@ -460,7 +457,6 @@ const ModelCanvas = () => {
     layerRefs.current.forEach((ref, idx) => {
       if (ref && idx !== dragState.draggedIndex) {
         const rect = ref.getBoundingClientRect();
-        const midY = rect.top + rect.height / 2;
         if (newY > rect.top && newY < rect.bottom) {
           newDropTarget = idx;
         } else if (newY < rect.top && idx === 0) {

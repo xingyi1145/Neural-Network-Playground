@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import math
-from typing import Tuple
 
 import numpy as np
 import pytest
@@ -12,19 +11,41 @@ from backend.datasets import get_dataset
 @pytest.mark.parametrize(
     "dataset_id,expected_features,task_type,hyperparams",
     [
-        ("mnist", 784, "classification", {"epochs": 10, "learning_rate": 0.001, "batch_size": 4096}),
-        ("iris", 4, "classification", {"epochs": 50, "learning_rate": 0.01, "batch_size": 32}),
+        (
+            "mnist",
+            784,
+            "classification",
+            {"epochs": 10, "learning_rate": 0.001, "batch_size": 4096},
+        ),
+        (
+            "iris",
+            4,
+            "classification",
+            {"epochs": 50, "learning_rate": 0.01, "batch_size": 32},
+        ),
         (
             "california_housing",
             8,
             "regression",
             {"epochs": 20, "learning_rate": 0.001, "batch_size": 512},
         ),
-        ("wine_quality", 11, "classification", {"epochs": 30, "learning_rate": 0.001, "batch_size": 128}),
-        ("synthetic", 2, "classification", {"epochs": 100, "learning_rate": 0.01, "batch_size": 64}),
+        (
+            "wine_quality",
+            11,
+            "classification",
+            {"epochs": 30, "learning_rate": 0.001, "batch_size": 128},
+        ),
+        (
+            "synthetic",
+            2,
+            "classification",
+            {"epochs": 100, "learning_rate": 0.01, "batch_size": 64},
+        ),
     ],
 )
-def test_dataset_shapes_and_hyperparams(dataset_id: str, expected_features: int, task_type: str, hyperparams: dict) -> None:
+def test_dataset_shapes_and_hyperparams(
+    dataset_id: str, expected_features: int, task_type: str, hyperparams: dict
+) -> None:
     # Keep tests fast by limiting sample size when supported
     kwargs = {"max_samples": 1000}
     if dataset_id == "iris":
@@ -61,7 +82,9 @@ def test_dataset_shapes_and_hyperparams(dataset_id: str, expected_features: int,
 
     # Hyperparameters match charter
     assert ds.hyperparameters.epochs == hyperparams["epochs"]
-    assert math.isclose(ds.hyperparameters.learning_rate, hyperparams["learning_rate"], rel_tol=1e-9)
+    assert math.isclose(
+        ds.hyperparameters.learning_rate, hyperparams["learning_rate"], rel_tol=1e-9
+    )
     assert ds.hyperparameters.batch_size == hyperparams["batch_size"]
 
 
@@ -72,5 +95,3 @@ def test_registry_lists_all() -> None:
     available = set(list_datasets())
     expected = {"mnist", "iris", "california_housing", "wine_quality", "synthetic"}
     assert expected.issubset(available)
-
-

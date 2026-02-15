@@ -107,7 +107,7 @@ const MNISTCanvas = ({ onInputChange }) => {
     let x = x0;
     let y = y0;
 
-    while (true) {
+    for (;;) {
       drawPixel(x, y);
 
       if (x === x1 && y === y1) break;

@@ -1,8 +1,4 @@
 """API endpoint tests for Neural Network Playground."""
-import sys
-from pathlib import Path
-
-import pytest
 from fastapi.testclient import TestClient
 
 from main import app
@@ -98,5 +94,3 @@ class TestRootEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert data["status"] == "healthy"
-
-

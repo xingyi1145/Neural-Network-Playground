@@ -146,7 +146,9 @@ class DynamicMLPModel(nn.Module):
 
             activation = layer.get("activation")
             # Allow null/None or explicit "linear" as identity.
-            normalized_activation = _normalize_activation(activation) if activation is not None else None
+            normalized_activation = (
+                _normalize_activation(activation) if activation is not None else None
+            )
 
             layers.append(
                 LayerSpec(
@@ -163,13 +165,11 @@ class DynamicMLPModel(nn.Module):
         first, last = layers[0], layers[-1]
         if first.type != "input":
             raise ModelConfigError(
-                "First layer must be of type 'input'. "
-                f"Got '{first.type}' instead."
+                "First layer must be of type 'input'. " f"Got '{first.type}' instead."
             )
         if last.type != "output":
             raise ModelConfigError(
-                "Last layer must be of type 'output'. "
-                f"Got '{last.type}' instead."
+                "Last layer must be of type 'output'. " f"Got '{last.type}' instead."
             )
 
         for idx, layer in enumerate(layers[1:-1], start=1):
@@ -313,5 +313,3 @@ class DynamicMLPModel(nn.Module):
             loss = F.mse_loss(outputs, y.float())
 
         return outputs, loss
-
-

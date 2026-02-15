@@ -5,7 +5,6 @@ import LayerPalette from '../components/LayerPalette';
 import ConfigPanel from '../components/ConfigPanel';
 import Canvas from '../components/Canvas';
 import TemplateModal from '../components/TemplateModal';
-import { createModel } from '../api/models';
 
 const ModelBuilder = ({ onNavigateToTraining }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);

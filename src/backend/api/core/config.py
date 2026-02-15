@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 
+
 class Settings(BaseSettings):
     APP_NAME: str = "FastAPI App"
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/nn_playground"
@@ -7,5 +8,6 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+
 
 settings = Settings()

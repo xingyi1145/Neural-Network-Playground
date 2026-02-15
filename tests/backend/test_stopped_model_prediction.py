@@ -1,18 +1,16 @@
 """Test that stopped models can still be used for predictions."""
 from __future__ import annotations
 
-import sys
 import time
 from datetime import datetime, timezone
-from pathlib import Path
 from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 
 from backend.api.routes import training as training_routes
-from backend.training.models import TrainingMetric, TrainingSession
 from backend.training.engine import TrainingEngine
+from backend.training.models import TrainingMetric, TrainingSession
 from main import app
 
 client = TestClient(app)
@@ -30,10 +28,14 @@ def seed_registry() -> None:
     training_routes.register_model_definition(model_id, "iris", layers)
 
 
-def test_stopped_model_can_be_used_for_prediction(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_stopped_model_can_be_used_for_prediction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Test that a stopped model (with partial training) can still make predictions."""
 
-    def fake_train_with_stop(self: TrainingEngine, model_id: str | None = None) -> TrainingSession:
+    def fake_train_with_stop(
+        self: TrainingEngine, model_id: str | None = None
+    ) -> TrainingSession:
         """Simulate training that gets stopped partway through."""
         session = TrainingSession(
             session_id=str(uuid4()),
@@ -63,23 +65,22 @@ def test_stopped_model_can_be_used_for_prediction(monkeypatch: pytest.MonkeyPatc
 
         # Create a mock trained model (in real scenario, this would be the partially trained network)
         from unittest.mock import MagicMock
+
         self.trained_model = MagicMock()
 
         return session
 
     def fake_predict(self: TrainingEngine, inputs: list) -> dict:
         """Mock prediction function."""
-        return {
-            "prediction": 1,
-            "probabilities": [0.2, 0.7, 0.1],
-            "confidence": 0.7
-        }
+        return {"prediction": 1, "probabilities": [0.2, 0.7, 0.1], "confidence": 0.7}
 
     monkeypatch.setattr(TrainingEngine, "train", fake_train_with_stop, raising=False)
     monkeypatch.setattr(TrainingEngine, "predict", fake_predict, raising=False)
 
     # Start training
-    response = client.post("/api/models/test_stopped_model/train", json={"max_samples": 50})
+    response = client.post(
+        "/api/models/test_stopped_model/train", json={"max_samples": 50}
+    )
     assert response.status_code == 202
     session_id = response.json()["session_id"]
 
@@ -97,7 +98,7 @@ def test_stopped_model_can_be_used_for_prediction(monkeypatch: pytest.MonkeyPatc
     # Test prediction on the stopped model - this should work!
     prediction_resp = client.post(
         f"/api/training/{session_id}/predict",
-        json={"inputs": [5.1, 3.5, 1.4, 0.2]}  # Sample iris input
+        json={"inputs": [5.1, 3.5, 1.4, 0.2]},  # Sample iris input
     )
     assert prediction_resp.status_code == 200
     prediction_data = prediction_resp.json()
@@ -107,10 +108,14 @@ def test_stopped_model_can_be_used_for_prediction(monkeypatch: pytest.MonkeyPatc
     assert prediction_data["confidence"] == 0.7
 
 
-def test_running_model_cannot_be_used_for_prediction(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_running_model_cannot_be_used_for_prediction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Test that a model that is still running cannot be used for prediction."""
 
-    def fake_train_running(self: TrainingEngine, model_id: str | None = None) -> TrainingSession:
+    def fake_train_running(
+        self: TrainingEngine, model_id: str | None = None
+    ) -> TrainingSession:
         """Simulate a training session that stays in running state."""
         session = TrainingSession(
             session_id=str(uuid4()),
@@ -141,7 +146,9 @@ def test_running_model_cannot_be_used_for_prediction(monkeypatch: pytest.MonkeyP
     monkeypatch.setattr(TrainingEngine, "train", fake_train_running, raising=False)
 
     # Start training
-    response = client.post("/api/models/test_stopped_model/train", json={"max_samples": 50})
+    response = client.post(
+        "/api/models/test_stopped_model/train", json={"max_samples": 50}
+    )
     assert response.status_code == 202
     session_id = response.json()["session_id"]
 
@@ -150,8 +157,7 @@ def test_running_model_cannot_be_used_for_prediction(monkeypatch: pytest.MonkeyP
 
     # Try to predict while still running - should fail
     prediction_resp = client.post(
-        f"/api/training/{session_id}/predict",
-        json={"inputs": [5.1, 3.5, 1.4, 0.2]}
+        f"/api/training/{session_id}/predict", json={"inputs": [5.1, 3.5, 1.4, 0.2]}
     )
     assert prediction_resp.status_code == 400
     assert "not complete" in prediction_resp.json()["detail"].lower()

@@ -21,7 +21,9 @@ class WineQualityDataset(BaseDataset):
     description = "Multi-class quality prediction on red wine (11 numeric features)."
     hyperparameters = Hyperparameters(epochs=30, learning_rate=0.001, batch_size=128)
 
-    def load(self, test_size: float = 0.2) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def load(
+        self, test_size: float = 0.2
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         # OpenML dataset: wine-quality-red (ID/name)
         data = fetch_openml(name="wine-quality-red", version=1, as_frame=True)
         X = data.data.to_numpy(dtype=np.float32)

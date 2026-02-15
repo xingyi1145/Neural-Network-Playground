@@ -8,17 +8,16 @@ users cannot create unusable graphs.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from datetime import datetime
+from typing import List, Optional
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field, conint
-
-from backend.datasets import list_datasets
-
 from sqlalchemy.orm import Session
+
 from backend.database import get_db
+from backend.datasets import list_datasets
 from backend.db_models import ModelConfigDB
 
 router = APIRouter(prefix="/api/models", tags=["models"])
@@ -43,7 +42,9 @@ class LayerConfig(BaseModel):
     """Single layer description supplied by the frontend."""
 
     type: str = Field(..., description="Layer kind such as input, hidden, output")
-    neurons: conint(gt=0) = Field(..., description="Number of units/neurons in the layer")
+    neurons: conint(gt=0) = Field(
+        ..., description="Number of units/neurons in the layer"
+    )
     activation: Optional[str] = Field(
         default=None,
         description="Activation function (None for input layers)",
@@ -76,7 +77,9 @@ class ModelCreateRequest(BaseModel):
         max_length=500,
         description="Optional description provided by the creator",
     )
-    dataset_id: str = Field(..., min_length=1, description="Dataset the model was built for")
+    dataset_id: str = Field(
+        ..., min_length=1, description="Dataset the model was built for"
+    )
     layers: List[LayerConfig] = Field(
         ...,
         min_items=2,
@@ -89,9 +92,24 @@ class ModelCreateRequest(BaseModel):
                 "name": "Custom MNIST model",
                 "dataset_id": "mnist",
                 "layers": [
-                    {"type": "input", "neurons": 784, "activation": None, "position": 0},
-                    {"type": "hidden", "neurons": 128, "activation": "relu", "position": 1},
-                    {"type": "output", "neurons": 10, "activation": "softmax", "position": 2},
+                    {
+                        "type": "input",
+                        "neurons": 784,
+                        "activation": None,
+                        "position": 0,
+                    },
+                    {
+                        "type": "hidden",
+                        "neurons": 128,
+                        "activation": "relu",
+                        "position": 1,
+                    },
+                    {
+                        "type": "output",
+                        "neurons": 10,
+                        "activation": "softmax",
+                        "position": 2,
+                    },
                 ],
             }
         }
@@ -123,7 +141,9 @@ def _ensure_dataset_exists(dataset_id: str) -> None:
 
 def _validate_layers(layers: List[LayerConfig]) -> List[LayerConfig]:
     if len(layers) < 2:
-        raise HTTPException(status_code=400, detail="Provide at least input and output layers")
+        raise HTTPException(
+            status_code=400, detail="Provide at least input and output layers"
+        )
 
     sorted_layers = sorted(layers, key=lambda layer: layer.position)
     expected_positions = list(range(len(sorted_layers)))
@@ -140,16 +160,24 @@ def _validate_layers(layers: List[LayerConfig]) -> List[LayerConfig]:
         layer_type = layer.type.lower()
         if layer_type not in ALLOWED_LAYER_TYPES:
             allowed = ", ".join(sorted(ALLOWED_LAYER_TYPES))
-            raise HTTPException(status_code=400, detail=f"Layer type must be one of: {allowed}")
+            raise HTTPException(
+                status_code=400, detail=f"Layer type must be one of: {allowed}"
+            )
 
-        activation = layer.activation.lower() if isinstance(layer.activation, str) else None
+        activation = (
+            layer.activation.lower() if isinstance(layer.activation, str) else None
+        )
         if activation not in ALLOWED_ACTIVATIONS:
             allowed = sorted(filter(None, ALLOWED_ACTIVATIONS))
-            raise HTTPException(status_code=400, detail=f"Activation must be one of {allowed} or null")
+            raise HTTPException(
+                status_code=400, detail=f"Activation must be one of {allowed} or null"
+            )
 
         type_counts[layer_type] += 1
         if layer_type == "input" and activation not in (None, "linear"):
-            raise HTTPException(status_code=400, detail="Input layers cannot define an activation")
+            raise HTTPException(
+                status_code=400, detail="Input layers cannot define an activation"
+            )
 
         normalized_layers.append(
             LayerConfig(
@@ -161,16 +189,23 @@ def _validate_layers(layers: List[LayerConfig]) -> List[LayerConfig]:
         )
 
     if type_counts["input"] != 1 or type_counts["output"] != 1:
-        raise HTTPException(status_code=400, detail="Models require exactly one input and one output layer")
+        raise HTTPException(
+            status_code=400,
+            detail="Models require exactly one input and one output layer",
+        )
 
     if normalized_layers[0].type != "input" or normalized_layers[-1].type != "output":
-        raise HTTPException(status_code=400, detail="Layers must start with input and end with output")
+        raise HTTPException(
+            status_code=400, detail="Layers must start with input and end with output"
+        )
 
     return normalized_layers
 
 
 @router.post("", response_model=ModelResponse, status_code=201)
-def create_model(config: ModelCreateRequest, db: Session = Depends(get_db)) -> ModelResponse:
+def create_model(
+    config: ModelCreateRequest, db: Session = Depends(get_db)
+) -> ModelResponse:
     """
     Create a model configuration from a list of layers.
     """
@@ -206,8 +241,10 @@ def create_model(config: ModelCreateRequest, db: Session = Depends(get_db)) -> M
 def get_model(model_id: str, db: Session = Depends(get_db)) -> ModelResponse:
     db_model = db.query(ModelConfigDB).filter(ModelConfigDB.id == model_id).first()
     if db_model is None:
-        raise HTTPException(status_code=404, detail=f"Model with id '{model_id}' not found")
-    
+        raise HTTPException(
+            status_code=404, detail=f"Model with id '{model_id}' not found"
+        )
+
     return ModelResponse(
         id=db_model.id,
         name=db_model.name,

@@ -1,13 +1,15 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Column, String, Integer, Float, DateTime, ForeignKey, JSON, Text
+from sqlalchemy import JSON, Column, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import relationship
 
 from backend.database import Base
 
+
 def _utcnow():
     return datetime.now(timezone.utc)
+
 
 class ModelConfigDB(Base):
     __tablename__ = "model_configs"
@@ -37,14 +39,20 @@ class TrainingSessionDB(Base):
     error_message = Column(Text, nullable=True)
 
     model = relationship("ModelConfigDB", back_populates="training_sessions")
-    metrics = relationship("TrainingMetricsDB", back_populates="session", order_by="TrainingMetricsDB.epoch")
+    metrics = relationship(
+        "TrainingMetricsDB",
+        back_populates="session",
+        order_by="TrainingMetricsDB.epoch",
+    )
 
 
 class TrainingMetricsDB(Base):
     __tablename__ = "training_metrics"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    session_id = Column(String, ForeignKey("training_sessions.session_id"), nullable=False)
+    session_id = Column(
+        String, ForeignKey("training_sessions.session_id"), nullable=False
+    )
     epoch = Column(Integer, nullable=False)
     loss = Column(Float, nullable=False)
     accuracy = Column(Float, nullable=True)

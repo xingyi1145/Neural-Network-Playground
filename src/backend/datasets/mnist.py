@@ -20,7 +20,9 @@ class MNISTDataset(BaseDataset):
     description = "28x28 grayscale digit images (flattened to 784 features)."
     hyperparameters = Hyperparameters(epochs=10, learning_rate=0.001, batch_size=4096)
 
-    def load(self, test_size: float = 0.2) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def load(
+        self, test_size: float = 0.2
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         # Use OpenML version for simpler dependency footprint
         data = fetch_openml("mnist_784", version=1, as_frame=False)
         X: np.ndarray = data["data"].astype(np.float32) / 255.0  # normalize to [0,1]
@@ -38,4 +40,3 @@ class MNISTDataset(BaseDataset):
         X_test = self._ensure_float32(X_test)
         self._validate_no_nans(X_train, X_test)
         return X_train, y_train, X_test, y_test
-

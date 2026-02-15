@@ -5,12 +5,11 @@ import time
 from concurrent.futures import Future, ThreadPoolExecutor
 from dataclasses import dataclass
 from types import MethodType
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
-from fastapi import APIRouter, HTTPException, Query, status, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
-from backend.database import get_db, SessionLocal
-from backend.db_models import ModelConfigDB, TrainingSessionDB, TrainingMetricsDB
 
 from backend.api.schemas.training import (
     LayerConfig,
@@ -19,10 +18,11 @@ from backend.api.schemas.training import (
     TrainingStartResponse,
     TrainingStatusResponse,
 )
-from pydantic import BaseModel
-from typing import Union
-
+from backend.database import SessionLocal, get_db
 from backend.datasets import get_dataset
+from backend.db_models import ModelConfigDB, TrainingMetricsDB, TrainingSessionDB
+from backend.training.engine import TrainingEngine
+from backend.training.models import TrainingMetric, TrainingSession
 
 
 class PredictionRequest(BaseModel):
@@ -33,8 +33,7 @@ class PredictionResponse(BaseModel):
     prediction: Union[int, float]
     probabilities: list = None
     confidence: float = None
-from backend.training.engine import TrainingEngine
-from backend.training.models import TrainingMetric, TrainingSession
+
 
 router = APIRouter(prefix="/api", tags=["training"])
 
@@ -66,12 +65,19 @@ class ModelRegistry:
         if db_model is None:
             raise ModelNotFoundError(model_id)
         layers = [LayerConfig(**layer) for layer in db_model.layers]
-        return ModelDefinition(model_id=db_model.id, dataset_id=db_model.dataset_id, layers=layers)
+        return ModelDefinition(
+            model_id=db_model.id, dataset_id=db_model.dataset_id, layers=layers
+        )
 
     def seed_from_templates(self, db: Session) -> None:
         from backend.api import templates as template_data
+
         for template in template_data.list_all_templates():
-            existing = db.query(ModelConfigDB).filter(ModelConfigDB.id == template["id"]).first()
+            existing = (
+                db.query(ModelConfigDB)
+                .filter(ModelConfigDB.id == template["id"])
+                .first()
+            )
             if existing:
                 continue
             db_model = ModelConfigDB(
@@ -165,13 +171,17 @@ class TrainingSessionManager:
         )
         return session
 
-    def _on_training_complete(self, model_id: str, session_id: str, engine: TrainingEngine) -> None:
+    def _on_training_complete(
+        self, model_id: str, session_id: str, engine: TrainingEngine
+    ) -> None:
         """Called in background thread when training future completes. Persists final state to DB."""
         db = SessionLocal()
         try:
-            db_session = db.query(TrainingSessionDB).filter(
-                TrainingSessionDB.session_id == session_id
-            ).first()
+            db_session = (
+                db.query(TrainingSessionDB)
+                .filter(TrainingSessionDB.session_id == session_id)
+                .first()
+            )
             if db_session and engine.session:
                 db_session.status = engine.session.status
                 db_session.current_epoch = engine.session.current_epoch
@@ -207,18 +217,25 @@ class TrainingSessionManager:
             return job.engine.session
 
         # Fall back to DB for completed/historical sessions
-        db_session = db.query(TrainingSessionDB).filter(
-            TrainingSessionDB.session_id == session_id
-        ).first()
+        db_session = (
+            db.query(TrainingSessionDB)
+            .filter(TrainingSessionDB.session_id == session_id)
+            .first()
+        )
         if db_session is None:
             raise SessionNotFoundError(session_id)
 
-        db_metrics = db.query(TrainingMetricsDB).filter(
-            TrainingMetricsDB.session_id == session_id
-        ).order_by(TrainingMetricsDB.epoch).all()
+        db_metrics = (
+            db.query(TrainingMetricsDB)
+            .filter(TrainingMetricsDB.session_id == session_id)
+            .order_by(TrainingMetricsDB.epoch)
+            .all()
+        )
 
         metrics = [
-            TrainingMetric(epoch=m.epoch, loss=m.loss, accuracy=m.accuracy, timestamp=m.timestamp)
+            TrainingMetric(
+                epoch=m.epoch, loss=m.loss, accuracy=m.accuracy, timestamp=m.timestamp
+            )
             for m in db_metrics
         ]
 
@@ -302,7 +319,9 @@ def _inject_max_samples(engine: TrainingEngine, max_samples: Optional[int]) -> N
     engine._prepare_data = MethodType(_patched_prepare, engine)  # type: ignore[attr-defined]
 
 
-def _wait_for_session_initialization(engine: TrainingEngine, timeout: float = 5.0) -> TrainingSession:
+def _wait_for_session_initialization(
+    engine: TrainingEngine, timeout: float = 5.0
+) -> TrainingSession:
     deadline = time.time() + timeout
     while time.time() < deadline:
         if engine.session is not None:
@@ -311,7 +330,9 @@ def _wait_for_session_initialization(engine: TrainingEngine, timeout: float = 5.
     raise RuntimeError("Training session failed to initialize")
 
 
-def _build_metric_payloads(metrics: List[TrainingMetric], since_epoch: int) -> List[TrainingMetricPayload]:
+def _build_metric_payloads(
+    metrics: List[TrainingMetric], since_epoch: int
+) -> List[TrainingMetricPayload]:
     return [
         TrainingMetricPayload(
             epoch=metric.epoch,
@@ -367,11 +388,15 @@ async def start_training_endpoint(
     try:
         get_dataset(dataset_id)
     except Exception as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Dataset '{dataset_id}' not found") from exc
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Dataset '{dataset_id}' not found",
+        ) from exc
 
     actual_model_id = model_id
     if model_id == "new":
         import uuid
+
         actual_model_id = f"temp-{uuid.uuid4()}"
 
     try:
@@ -396,7 +421,9 @@ async def start_training_endpoint(
         session_id=session.session_id,
         status=session.status,
         total_epochs=session.total_epochs,
-        poll_interval_seconds=max(DEFAULT_POLL_INTERVAL, 1.5 if session.status == "running" else 0.0),
+        poll_interval_seconds=max(
+            DEFAULT_POLL_INTERVAL, 1.5 if session.status == "running" else 0.0
+        ),
     )
 
 
@@ -406,17 +433,23 @@ async def start_training_endpoint(
 )
 async def get_training_status_endpoint(
     session_id: str,
-    since_epoch: int = Query(0, ge=0, description="Return metrics with epoch greater than this value"),
+    since_epoch: int = Query(
+        0, ge=0, description="Return metrics with epoch greater than this value"
+    ),
     db: Session = Depends(get_db),
 ) -> TrainingStatusResponse:
     try:
         session = _session_manager.get_session(session_id, db)
     except SessionNotFoundError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Training session not found") from exc
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Training session not found"
+        ) from exc
 
     metrics = _build_metric_payloads(session.metrics, since_epoch)
     progress = _calculate_progress(session)
-    poll_interval = DEFAULT_POLL_INTERVAL if session.status in {"running", "paused"} else 5.0
+    poll_interval = (
+        DEFAULT_POLL_INTERVAL if session.status in {"running", "paused"} else 5.0
+    )
 
     return TrainingStatusResponse(
         session_id=session.session_id,
@@ -448,30 +481,28 @@ async def predict_endpoint(
         job = _session_manager.get_job(session_id)
     except SessionNotFoundError as exc:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Training session not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Training session not found"
         ) from exc
 
     session = _session_manager.get_session(session_id, db)
     if session.status not in ("completed", "stopped"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Model training is not complete (status: {session.status})"
+            detail=f"Model training is not complete (status: {session.status})",
         )
-    
+
     if job.engine.trained_model is None:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No trained model available"
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No trained model available"
         )
-    
+
     try:
         result = job.engine.predict(request.inputs)
         return PredictionResponse(**result)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Prediction failed: {str(e)}"
+            detail=f"Prediction failed: {str(e)}",
         )
 
 
@@ -503,21 +534,20 @@ async def stop_training_endpoint(session_id: str) -> StopTrainingResponse:
         session = _session_manager.stop_session(session_id)
     except SessionNotFoundError as exc:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Training session not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Training session not found"
         ) from exc
-    
+
     if session.status == "running":
         return StopTrainingResponse(
             session_id=session_id,
             status="stopping",
-            message="Stop request sent. Training will stop after the current epoch."
+            message="Stop request sent. Training will stop after the current epoch.",
         )
     else:
         return StopTrainingResponse(
             session_id=session_id,
             status=session.status,
-            message=f"Training already {session.status}"
+            message=f"Training already {session.status}",
         )
 
 
@@ -531,14 +561,15 @@ async def pause_training_endpoint(session_id: str) -> PauseTrainingResponse:
         session = _session_manager.pause_session(session_id)
     except SessionNotFoundError as exc:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Training session not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Training session not found"
         ) from exc
 
     return PauseTrainingResponse(
         session_id=session_id,
         status=session.status,
-        message="Training paused" if session.status == "paused" else f"Training already {session.status}",
+        message="Training paused"
+        if session.status == "paused"
+        else f"Training already {session.status}",
     )
 
 
@@ -552,14 +583,15 @@ async def resume_training_endpoint(session_id: str) -> ResumeTrainingResponse:
         session = _session_manager.resume_session(session_id)
     except SessionNotFoundError as exc:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Training session not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Training session not found"
         ) from exc
 
     return ResumeTrainingResponse(
         session_id=session_id,
         status=session.status,
-        message="Training resumed" if session.status == "running" else f"Training already {session.status}",
+        message="Training resumed"
+        if session.status == "running"
+        else f"Training already {session.status}",
     )
 
 

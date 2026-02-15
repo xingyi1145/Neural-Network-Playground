@@ -24,5 +24,15 @@
     "react": {
       "version": "detect"
     }
-  }
+  },
+  "overrides": [
+    {
+      "files": ["vite.config.js"],
+      "env": { "node": true }
+    },
+    {
+      "files": ["src/setupTests.js", "src/test/setup.js"],
+      "env": { "node": true }
+    }
+  ]
 }

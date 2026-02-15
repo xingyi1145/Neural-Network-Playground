@@ -21,7 +21,9 @@ class CaliforniaHousingDataset(BaseDataset):
     description = "Predict median house values from 8 numeric features (regression)."
     hyperparameters = Hyperparameters(epochs=20, learning_rate=0.001, batch_size=512)
 
-    def load(self, test_size: float = 0.2) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def load(
+        self, test_size: float = 0.2
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         bunch = fetch_california_housing(as_frame=False)
         X: np.ndarray = bunch.data
         y: np.ndarray = bunch.target.astype(np.float32)

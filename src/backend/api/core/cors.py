@@ -1,5 +1,7 @@
 from fastapi.middleware.cors import CORSMiddleware
+
 from backend.api.core.config import settings
+
 
 def init_cors(app):
     origins = [o.strip() for o in settings.ALLOWED_ORIGINS.split(",") if o.strip()]

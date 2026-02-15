@@ -36,7 +36,7 @@ jobs:
         run: black --check src/backend tests
 
       - name: Check import order (isort)
-        run: isort --check-only src/backend tests
+        run: isort --check-only --profile black src/backend tests
 
       - name: Lint (flake8)
         run: flake8 src/backend tests --max-line-length 120

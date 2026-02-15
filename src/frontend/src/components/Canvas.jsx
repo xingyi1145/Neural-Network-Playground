@@ -1,17 +1,11 @@
 import React, { useCallback, useRef } from 'react';
 import ReactFlow, {
-  addEdge,
   Background,
   Controls,
   MiniMap,
-  useNodesState,
-  useEdgesState,
   ReactFlowProvider,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-
-const initialNodes = [];
-const initialEdges = [];
 
 let id = 0;
 const getId = () => `dndnode_${id++}`;

@@ -4,11 +4,12 @@ from typing import Callable, Dict, List, Type
 
 from .base import BaseDataset
 
-
 _DATASET_REGISTRY: Dict[str, Type[BaseDataset]] = {}
 
 
-def register_dataset(dataset_id: str) -> Callable[[Type[BaseDataset]], Type[BaseDataset]]:
+def register_dataset(
+    dataset_id: str,
+) -> Callable[[Type[BaseDataset]], Type[BaseDataset]]:
     """Class decorator to register a dataset by id."""
 
     def _decorator(cls: Type[BaseDataset]) -> Type[BaseDataset]:
@@ -33,5 +34,3 @@ def get_dataset(dataset_id: str, **kwargs) -> BaseDataset:
 
 def list_datasets() -> List[str]:
     return sorted(_DATASET_REGISTRY.keys())
-
-
