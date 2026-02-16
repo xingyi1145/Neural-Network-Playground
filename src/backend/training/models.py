@@ -1,12 +1,15 @@
-from typing import List, Optional, Literal
 from datetime import datetime
+from typing import List, Literal, Optional
+
 from pydantic import BaseModel
+
 
 class TrainingMetric(BaseModel):
     epoch: int
     loss: float
     accuracy: Optional[float] = None
     timestamp: datetime
+
 
 class TrainingSession(BaseModel):
     session_id: str

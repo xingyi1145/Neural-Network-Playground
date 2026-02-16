@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Optional, Tuple
 
 import numpy as np
 
@@ -39,7 +39,9 @@ class BaseDataset(ABC):
     description: str
     hyperparameters: Hyperparameters
 
-    def __init__(self, max_samples: Optional[int] = None, random_state: int = 42) -> None:
+    def __init__(
+        self, max_samples: Optional[int] = None, random_state: int = 42
+    ) -> None:
         self.max_samples = max_samples
         self.random_state = random_state
 
@@ -74,4 +76,3 @@ class BaseDataset(ABC):
         if arr.ndim == 1:
             arr = arr.reshape(1, -1)
         return self._ensure_float32(arr)
-

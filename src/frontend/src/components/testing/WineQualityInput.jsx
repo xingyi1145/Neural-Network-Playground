@@ -18,7 +18,7 @@ const buildDefaults = () =>
   WINE_FEATURES.reduce((acc, f) => ({ ...acc, [f.name]: f.default }), {});
 
 // Wine glass visualization that responds to the slider values
-function WineVisualization({ alcohol, pH, residualSugar, volatileAcidity, fixedAcidity, sulphates }) {
+function WineVisualization({ alcohol, pH, residualSugar, volatileAcidity }) {
   const normalize = (value, min, max, targetMin, targetMax) => {
     return targetMin + ((value - min) / (max - min)) * (targetMax - targetMin);
   };

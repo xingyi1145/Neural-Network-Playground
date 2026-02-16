@@ -157,7 +157,7 @@ function IrisInput({ onInputChange }) {
       <div className="space-y-1.5">
         <span className="text-xs text-gray-400">Quick presets</span>
         <div className="grid grid-cols-3 gap-2">
-          {Object.entries(presets).map(([name, preset]) => {
+          {Object.entries(presets).map(([name]) => {
             const flowerImages = {
               Setosa: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/56/Kosaciec_szczecinkowaty_Iris_setosa.jpg/180px-Kosaciec_szczecinkowaty_Iris_setosa.jpg',
               Versicolor: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Iris_versicolor_3.jpg/180px-Iris_versicolor_3.jpg',

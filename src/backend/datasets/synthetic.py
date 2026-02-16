@@ -26,7 +26,9 @@ def _make_spiral(n_samples: int, random_state: int) -> Tuple[np.ndarray, np.ndar
     x1 = np.stack([r * np.cos(theta), r * np.sin(theta)], axis=1)
     x2 = np.stack([r * np.cos(theta + np.pi), r * np.sin(theta + np.pi)], axis=1)
     X = np.concatenate([x1, x2], axis=0).astype(np.float32)
-    y = np.concatenate([np.zeros(n_per_class, dtype=np.int64), np.ones(n_per_class, dtype=np.int64)])
+    y = np.concatenate(
+        [np.zeros(n_per_class, dtype=np.int64), np.ones(n_per_class, dtype=np.int64)]
+    )
     # Add small noise
     X += rng.normal(0, 0.05, size=X.shape).astype(np.float32)
     return X, y
@@ -46,8 +48,12 @@ class SyntheticDataset(BaseDataset):
         super().__init__(**kwargs)
         self.kind: Literal["xor", "spiral"] = kind
 
-    def load(self, test_size: float = 0.2) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
-        n_samples = self.max_samples if self.max_samples is not None else self.num_samples
+    def load(
+        self, test_size: float = 0.2
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        n_samples = (
+            self.max_samples if self.max_samples is not None else self.num_samples
+        )
         if n_samples < 100:
             n_samples = 100  # ensure reasonable size
 

@@ -1,9 +1,13 @@
 from fastapi.middleware.cors import CORSMiddleware
 
+from backend.api.core.config import settings
+
+
 def init_cors(app):
+    origins = [o.strip() for o in settings.ALLOWED_ORIGINS.split(",") if o.strip()]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:5173"],  # frontend URL to be accessed in browser
+        allow_origins=origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

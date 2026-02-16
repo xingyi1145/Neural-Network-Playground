@@ -76,7 +76,7 @@ TEMPLATES: Dict[str, dict] = {
             {"type": "output", "neurons": 1, "activation": "linear", "position": 3},
         ],
     },
-    # Wine Quality (11 -> 6 classification)
+    # Wine Quality (11 -> 10 classification)
     "wine_simple": {
         "id": "wine_simple",
         "name": "Wine Simple MLP",
@@ -85,7 +85,7 @@ TEMPLATES: Dict[str, dict] = {
         "layers": [
             {"type": "input", "neurons": 11, "activation": None, "position": 0},
             {"type": "hidden", "neurons": 32, "activation": "relu", "position": 1},
-            {"type": "output", "neurons": 6, "activation": "softmax", "position": 2},
+            {"type": "output", "neurons": 10, "activation": "softmax", "position": 2},
         ],
     },
     "wine_deep": {
@@ -97,7 +97,7 @@ TEMPLATES: Dict[str, dict] = {
             {"type": "input", "neurons": 11, "activation": None, "position": 0},
             {"type": "hidden", "neurons": 64, "activation": "relu", "position": 1},
             {"type": "hidden", "neurons": 32, "activation": "relu", "position": 2},
-            {"type": "output", "neurons": 6, "activation": "softmax", "position": 3},
+            {"type": "output", "neurons": 10, "activation": "softmax", "position": 3},
         ],
     },
     # Synthetic (2 -> 2 classification)

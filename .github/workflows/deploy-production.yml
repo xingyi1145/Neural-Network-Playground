@@ -1,0 +1,48 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [main]
+
+# Only one production deploy at a time
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  # Run CI first as a safety gate
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Deploy to Production
+    needs: ci
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to production server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          script: |
+            cd /var/www/nn-playground
+            git fetch origin main
+            git checkout main
+            git pull origin main
+            sudo bash deploy/deploy.sh
+
+      - name: Health check
+        run: |
+          sleep 5
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://${{ secrets.PRODUCTION_HOST }}/api/health || true)
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "Production deploy healthy!"
+          else
+            echo "Production health check failed (HTTP $HTTP_STATUS)"
+            exit 1
+          fi

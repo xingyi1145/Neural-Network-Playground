@@ -1,20 +1,18 @@
 from __future__ import annotations
 
-import sys
 import threading
 import time
 from datetime import datetime, timezone
-from pathlib import Path
-from typing import List
 from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.api.routes import training as training_routes
-from backend.training.models import TrainingMetric, TrainingSession
+from backend.api.main import app
+from backend.database import SessionLocal
+from backend.db_models import ModelConfigDB
 from backend.training.engine import TrainingEngine
-from main import app
+from backend.training.models import TrainingMetric, TrainingSession
 
 client = TestClient(app)
 
@@ -28,10 +26,27 @@ def seed_registry() -> None:
         {"type": "hidden", "neurons": 8, "activation": "relu", "position": 1},
         {"type": "output", "neurons": 3, "activation": "softmax", "position": 2},
     ]
-    training_routes.register_model_definition(model_id, "iris", layers)
+    db = SessionLocal()
+    try:
+        existing = db.query(ModelConfigDB).filter(ModelConfigDB.id == model_id).first()
+        if not existing:
+            db_model = ModelConfigDB(
+                id=model_id,
+                name="test_model",
+                dataset_id="iris",
+                layers=layers,
+                status="created",
+            )
+            db.add(db_model)
+            db.commit()
+        yield
+    finally:
+        db.close()
 
 
-def _build_fake_session(model_id: str, dataset_id: str, total_epochs: int = 2) -> TrainingSession:
+def _build_fake_session(
+    model_id: str, dataset_id: str, total_epochs: int = 2
+) -> TrainingSession:
     session = TrainingSession(
         session_id=str(uuid4()),
         model_id=model_id,
@@ -57,8 +72,12 @@ def _emit_metrics(session: TrainingSession, epochs: int) -> None:
 
 
 def test_training_flow_with_polling(monkeypatch: pytest.MonkeyPatch) -> None:
-    def fake_train(self: TrainingEngine, model_id: str | None = None) -> TrainingSession:
-        session = _build_fake_session(model_id or "unknown", self.dataset_id, total_epochs=3)
+    def fake_train(
+        self: TrainingEngine, model_id: str | None = None
+    ) -> TrainingSession:
+        session = _build_fake_session(
+            model_id or "unknown", self.dataset_id, total_epochs=3
+        )
         self.session = session
         _emit_metrics(session, 3)
         session.status = "completed"
@@ -78,7 +97,9 @@ def test_training_flow_with_polling(monkeypatch: pytest.MonkeyPatch) -> None:
     assert payload["current_epoch"] == 3
     assert len(payload["metrics"]) == 3
 
-    filtered_resp = client.get(f"/api/training/{session_id}/status", params={"since_epoch": 2})
+    filtered_resp = client.get(
+        f"/api/training/{session_id}/status", params={"since_epoch": 2}
+    )
     assert filtered_resp.status_code == 200
     filtered = filtered_resp.json()
     assert len(filtered["metrics"]) == 1
@@ -93,8 +114,12 @@ def test_start_rejects_unknown_model() -> None:
 def test_duplicate_start_returns_400(monkeypatch: pytest.MonkeyPatch) -> None:
     blocker = threading.Event()
 
-    def slow_train(self: TrainingEngine, model_id: str | None = None) -> TrainingSession:
-        session = _build_fake_session(model_id or "unknown", self.dataset_id, total_epochs=5)
+    def slow_train(
+        self: TrainingEngine, model_id: str | None = None
+    ) -> TrainingSession:
+        session = _build_fake_session(
+            model_id or "unknown", self.dataset_id, total_epochs=5
+        )
         self.session = session
         _emit_metrics(session, 2)
         # Keep status running until blocker is set so we can trigger the duplicate check.

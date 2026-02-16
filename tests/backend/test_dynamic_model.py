@@ -173,4 +173,3 @@ class TestValidationErrors:
     def test_from_json_invalid_string_raises(self) -> None:
         with pytest.raises(ModelConfigError):
             DynamicMLPModel.from_json("not valid json")
-

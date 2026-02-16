@@ -32,7 +32,9 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
         // Retry on connection refused (backend not ready)
+        // eslint-disable-next-line no-unused-vars
         configure: (proxy, _options) => {
+          // eslint-disable-next-line no-unused-vars
           proxy.on('error', (err, _req, res) => {
             console.log('[Proxy] Connection error - backend may still be starting:', err.code);
           });

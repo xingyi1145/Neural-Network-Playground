@@ -1,17 +1,18 @@
-import uuid
 import math
 import threading
+import uuid
 from datetime import datetime
-from typing import Dict, Any, Optional, Tuple, List
-
-import torch
-from torch import nn, optim
-from torch.utils.data import TensorDataset, DataLoader
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
+import torch
+from torch import nn, optim
+from torch.utils.data import DataLoader, TensorDataset
+
 from backend.datasets import get_dataset
-from backend.training.models import TrainingSession, TrainingMetric
 from backend.models.dynamic_model import DynamicMLPModel
+from backend.training.models import TrainingMetric, TrainingSession
+
 
 class TrainingEngine:
     def __init__(
@@ -59,7 +60,9 @@ class TrainingEngine:
         self._pause_requested = False
         self._pause_event.set()
 
-    def _prepare_data(self, max_samples: Optional[int] = None) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, Any]:
+    def _prepare_data(
+        self, max_samples: Optional[int] = None
+    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, Any]:
         ds = get_dataset(self.dataset_id, max_samples=max_samples)
         X_train, y_train, X_test, y_test = ds.load(test_size=0.2)
         # Keep dataset instance so we can reuse preprocessing (e.g., scalers) during predict
@@ -79,7 +82,9 @@ class TrainingEngine:
             return nn.CrossEntropyLoss()
         return nn.MSELoss()
 
-    def _train_one_epoch(self, loader: DataLoader, model: nn.Module, optimizer, loss_fn, task_type: str) -> Tuple[float, Optional[float]]:
+    def _train_one_epoch(
+        self, loader: DataLoader, model: nn.Module, optimizer, loss_fn, task_type: str
+    ) -> Tuple[float, Optional[float]]:
         model.train()
         running_loss = 0.0
         correct = 0
@@ -89,11 +94,11 @@ class TrainingEngine:
             yb = yb.to(self.device)
             optimizer.zero_grad()
             preds = model(Xb)
-            
+
             # Ensure shapes match for regression
             if task_type != "classification":
                 preds = preds.view_as(yb)
-                
+
             loss = loss_fn(preds, yb)
             if torch.isnan(loss).any():
                 raise ValueError("NaN loss")
@@ -132,12 +137,16 @@ class TrainingEngine:
         try:
             X_train, y_train, X_test, y_test, ds = self._prepare_data()
             hp = ds.hyperparameters
-            
+
             # Override with custom hyperparameters if provided
             epochs = self.custom_epochs if self.custom_epochs is not None else hp.epochs
             lr = self.custom_lr if self.custom_lr is not None else hp.learning_rate
-            batch_size = self.custom_batch_size if self.custom_batch_size is not None else hp.batch_size
-            # optimizer_name = self.custom_optimizer if self.custom_optimizer else hp.optimizer # TODO: Implement optimizer switching
+            batch_size = (
+                self.custom_batch_size
+                if self.custom_batch_size is not None
+                else hp.batch_size
+            )
+            # TODO: Implement optimizer switching
 
             self.session.total_epochs = epochs
 
@@ -148,15 +157,15 @@ class TrainingEngine:
             # Extract output_dim from last layer in config
             layers = self.model_config["layers"]
             output_neurons = layers[-1]["neurons"] if layers else 1
-            
+
             model_cfg = {
                 "input_dim": ds.num_features,
                 "output_dim": output_neurons,
                 "task_type": ds.task_type,
-                "layers": layers
+                "layers": layers,
             }
             model = DynamicMLPModel(model_cfg).to(self.device)
-            
+
             # Select optimizer
             opt_name = (self.custom_optimizer or "adam").lower()
             if opt_name == "sgd":
@@ -183,9 +192,16 @@ class TrainingEngine:
                     break
 
                 self.session.current_epoch = epoch
-                avg_loss, acc = self._train_one_epoch(loader, model, optimizer, loss_fn, ds.task_type)
-                
-                metric = TrainingMetric(epoch=epoch, loss=float(avg_loss), accuracy=(float(acc) if acc is not None else None), timestamp=datetime.utcnow())
+                avg_loss, acc = self._train_one_epoch(
+                    loader, model, optimizer, loss_fn, ds.task_type
+                )
+
+                metric = TrainingMetric(
+                    epoch=epoch,
+                    loss=float(avg_loss),
+                    accuracy=(float(acc) if acc is not None else None),
+                    timestamp=datetime.utcnow(),
+                )
                 self.session.metrics.append(metric)
 
                 err = self._check_for_failures(avg_loss)
@@ -222,7 +238,7 @@ class TrainingEngine:
             raise ValueError("Model has not been trained yet")
         if self.dataset is None:
             raise ValueError("Dataset context missing; cannot preprocess inputs")
-        
+
         self.trained_model.eval()
         # Apply the same preprocessing used during training (e.g., StandardScaler)
         if hasattr(self.dataset, "transform_inputs"):
@@ -230,16 +246,18 @@ class TrainingEngine:
         else:
             processed_inputs = np.asarray(inputs, dtype=np.float32).reshape(1, -1)
 
-        input_tensor = torch.tensor(processed_inputs, dtype=torch.float32).to(self.device)
+        input_tensor = torch.tensor(processed_inputs, dtype=torch.float32).to(
+            self.device
+        )
         with torch.no_grad():
             output = self.trained_model(input_tensor)
-            
+
             if self.task_type == "classification":
                 # Apply softmax to get probabilities
                 probabilities = torch.softmax(output, dim=1)[0].cpu().numpy().tolist()
                 predicted_class = int(torch.argmax(output, dim=1).item())
                 confidence = float(probabilities[predicted_class])
-                
+
                 return {
                     "prediction": predicted_class,
                     "probabilities": probabilities,

@@ -2,10 +2,10 @@
 
 from .training import (
     LayerConfig,
+    TrainingMetricPayload,
     TrainingStartRequest,
     TrainingStartResponse,
     TrainingStatusResponse,
-    TrainingMetricPayload,
 )
 
 __all__ = [

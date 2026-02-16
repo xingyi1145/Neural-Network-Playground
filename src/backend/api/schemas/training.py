@@ -48,7 +48,7 @@ class TrainingStartRequest(BaseModel):
     max_samples: Optional[int] = Field(
         default=None,
         gt=0,
-        le=10000,
+        le=60000,
         description="Optional sample cap to speed up experimentation",
     )
     epochs: Optional[int] = Field(

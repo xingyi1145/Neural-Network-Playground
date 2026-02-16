@@ -27,7 +27,7 @@ const CLASS_LABELS = {
 };
 
 const TestingPanel = () => {
-  const { selectedDataset, training, testing, setTestInputs, setTestOutputs, setTestLoading } = useModel();
+  const { selectedDataset, training, setTestInputs, setTestOutputs, setTestLoading } = useModel();
   const [currentInput, setCurrentInput] = useState(null);
   const [error, setError] = useState(null);
   const [prediction, setPrediction] = useState(null);

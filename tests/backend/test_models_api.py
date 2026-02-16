@@ -9,8 +9,9 @@ from typing import Dict
 import pytest
 from fastapi.testclient import TestClient
 
+from backend.api.main import app
 from backend.api.routes import models as models_module
-from main import app
+from backend.database import SessionLocal
 
 client = TestClient(app)
 
@@ -18,9 +19,13 @@ client = TestClient(app)
 @pytest.fixture(autouse=True)
 def clear_store() -> None:
     """Start each test with a blank in-memory store."""
-    models_module.clear_model_store()
-    yield
-    models_module.clear_model_store()
+    db = SessionLocal()
+    try:
+        models_module.clear_model_store(db)
+        yield
+        models_module.clear_model_store(db)
+    finally:
+        db.close()
 
 
 def build_payload(overrides: Dict[str, object] | None = None) -> Dict[str, object]:
