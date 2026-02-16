@@ -398,6 +398,16 @@ async def start_training_endpoint(
         import uuid
 
         actual_model_id = f"temp-{uuid.uuid4()}"
+        # Persist temporary model config so FK constraint is satisfied
+        db_model = ModelConfigDB(
+            id=actual_model_id,
+            name=f"Untitled ({dataset_id})",
+            dataset_id=dataset_id,
+            layers=[l.model_dump(exclude_none=True) for l in layers],
+            status="training",
+        )
+        db.add(db_model)
+        db.commit()
 
     try:
         session = _session_manager.start_training(
