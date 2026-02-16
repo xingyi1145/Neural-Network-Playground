@@ -8,10 +8,11 @@ from uuid import uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from backend.api.routes import training as training_routes
+from backend.api.main import app
+from backend.database import SessionLocal
+from backend.db_models import ModelConfigDB
 from backend.training.engine import TrainingEngine
 from backend.training.models import TrainingMetric, TrainingSession
-from main import app
 
 client = TestClient(app)
 
@@ -25,7 +26,22 @@ def seed_registry() -> None:
         {"type": "hidden", "neurons": 8, "activation": "relu", "position": 1},
         {"type": "output", "neurons": 3, "activation": "softmax", "position": 2},
     ]
-    training_routes.register_model_definition(model_id, "iris", layers)
+    db = SessionLocal()
+    try:
+        existing = db.query(ModelConfigDB).filter(ModelConfigDB.id == model_id).first()
+        if not existing:
+            db_model = ModelConfigDB(
+                id=model_id,
+                name="test_model",
+                dataset_id="iris",
+                layers=layers,
+                status="created",
+            )
+            db.add(db_model)
+            db.commit()
+        yield
+    finally:
+        db.close()
 
 
 def _build_fake_session(
