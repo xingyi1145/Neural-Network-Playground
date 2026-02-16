@@ -49,13 +49,13 @@ describe('App', () => {
     expect(await screen.findByText('nurel')).toBeInTheDocument()
     expect(screen.getByText('Neural network playground')).toBeInTheDocument()
     
-    // Check for key panels
-    expect(screen.getByText('Datasets')).toBeInTheDocument()
-    expect(screen.getByText('Model Architecture')).toBeInTheDocument()
-    
-    // Check for Right Panel tabs
-    expect(screen.getByText('Training')).toBeInTheDocument()
-    expect(screen.getByText('Testing')).toBeInTheDocument()
+    // Check for workflow steps and panel headings
+    expect(screen.getByText('Select Dataset')).toBeInTheDocument()
+    expect(screen.getByText('Build Model')).toBeInTheDocument()
+
+    // "Train" and "Test" appear in both the header stepper and right panel tabs
+    expect(screen.getAllByText('Train').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('Test').length).toBeGreaterThanOrEqual(1)
   })
 
   it('loads and displays datasets', async () => {
