@@ -403,7 +403,7 @@ async def start_training_endpoint(
             id=actual_model_id,
             name=f"Untitled ({dataset_id})",
             dataset_id=dataset_id,
-            layers=[l.model_dump(exclude_none=True) for l in layers],
+            layers=[layer.model_dump(exclude_none=True) for layer in layers],
             status="training",
         )
         db.add(db_model)
