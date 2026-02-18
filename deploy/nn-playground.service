@@ -15,7 +15,7 @@ ExecStart=/var/www/nn-playground/venv/bin/uvicorn \
     backend.api.main:app \
     --host 127.0.0.1 \
     --port 8000 \
-    --workers 2
+    --workers 1
 
 Restart=on-failure
 RestartSec=5
