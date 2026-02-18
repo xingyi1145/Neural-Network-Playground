@@ -7,7 +7,7 @@
 set -euo pipefail
 
 APP_DIR="/var/www/nn-playground"
-REPO_URL="https://github.com/ppastabtw/Neural-Network-Playground.git"
+REPO_URL="https://github.com/xingyi1145/Neural-Network-Playground.git"
 BRANCH="main"
 
 echo "==> Updating system packages..."
