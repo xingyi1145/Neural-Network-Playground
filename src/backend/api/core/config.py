@@ -6,10 +6,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./nn_playground.db"
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
 
-    model_config = {
-        "env_file": ".env",
-        "extra": "ignore"
-    }
+    model_config = {"env_file": ".env", "extra": "ignore"}
 
 
 settings = Settings()
