@@ -11,6 +11,14 @@
 
 An accessible, interactive web application that enables beginners to learn neural networks by visually designing, training, and testing Multi-Layer Perceptrons **without writing code**.
 
+## Try it Live! 🚀
+
+Skip the setup and experience the Neural Network Playground directly in your browser.
+
+👉 **Visit the live app:** [**nurel.app**](https://nurel.app/)
+
+---
+
 ### Target User
 **"Alex the ML Beginner"** - Computer science student with basic Python knowledge, curious about neural networks but intimidated by the steep learning curve of PyTorch/TensorFlow.
 
@@ -126,7 +134,7 @@ npm run dev
 ```
 ┌─────────────────────────────────────────┐
 │           FRONTEND (React)              │
-│  Dataset Selector → Visual Builder →   │
+│  Dataset Selector → Visual Builder →    │
 │  Training Dashboard → Testing UI        │
 └──────────────┬──────────────────────────┘
                │ REST API
